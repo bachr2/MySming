@@ -17,6 +17,8 @@ import android.view.ViewGroup;
 import android.support.v4.widget.DrawerLayout;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
+import android.os.Handler;
+import android.os.Message;
 
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
@@ -56,6 +58,13 @@ public class MainActivity extends Activity
                 R.id.navigation_drawer,
                 (DrawerLayout) findViewById(R.id.drawer_layout));
     }
+
+    public static Handler mHandler = new Handler(){
+        @Override
+        public void handleMessage(Message msg) {
+ /**/
+        }
+    };
 
     @Override
     public void onNavigationDrawerItemSelected(int position) {
