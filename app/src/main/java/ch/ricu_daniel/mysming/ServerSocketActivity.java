@@ -1,4 +1,4 @@
-package ch.ricu_daniel.sming;
+package ch.ricu_daniel.mysming;
 
 /**
  * Created by Daniel on 07.06.2015.
@@ -88,7 +88,7 @@ public class ServerSocketActivity extends ListActivity
     protected void listen() {
         try {
 			/* Create BT service
-			 * param£ºserver name¡¢UUID
+			 * param-server name-UUID
 			 */
 
             _serverSocket = _bluetooth.listenUsingRfcommWithServiceRecord(PROTOCOL_SCHEME_RFCOMM,

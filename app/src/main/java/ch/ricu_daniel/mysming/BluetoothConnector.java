@@ -1,4 +1,4 @@
-package ch.ricu_daniel.sming;
+package ch.ricu_daniel.mysming;
 
 /**
  * Created by Daniel on 07.06.2015.
