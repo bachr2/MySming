@@ -107,15 +107,22 @@ public class MainActivity extends Activity
                 fragment = PlaceholderFragment.newInstance(position + 1);
                 break;
             case 1:
+                Intent intent = new Intent(this, DeviceScanActivity.class);
+                startActivity(intent);
+                fragment = null;
+                break;
+            case 2:
                 fragment = graphfragment;
                 break;
             default:
                 fragment = contactfragment;
                 break;
         }
-        fragmentManager.beginTransaction()
-                .replace(R.id.container, fragment)
-                .commit();
+        if(fragment != null) {
+            fragmentManager.beginTransaction()
+                    .replace(R.id.container, fragment)
+                    .commit();
+        }
     }
 
     public void onSectionAttached(int number) {
@@ -124,9 +131,12 @@ public class MainActivity extends Activity
                 mTitle = getString(R.string.title_section1);
                 break;
             case 2:
-                mTitle = getString(R.string.title_section2);
+                mTitle = getString(R.string.title_section4);
                 break;
             case 3:
+                mTitle = getString(R.string.title_section2);
+                break;
+            case 4:
                 mTitle = getString(R.string.title_section3);
                 break;
         }
