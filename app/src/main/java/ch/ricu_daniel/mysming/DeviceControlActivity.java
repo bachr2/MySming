@@ -31,6 +31,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ExpandableListView;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
@@ -47,6 +48,9 @@ import java.util.List;
  */
 public class DeviceControlActivity extends Activity {
     private final static String TAG = DeviceControlActivity.class.getSimpleName();
+
+    private DataStorage mDataStorage;
+    private int mDataCurrentPosition = 0;
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
@@ -173,6 +177,13 @@ public class DeviceControlActivity extends Activity {
         getActionBar().setDisplayHomeAsUpEnabled(true);
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+
+        Button btn = (Button) findViewById(R.id.button8);
+        btn.setEnabled(true);
+        btn = (Button) findViewById(R.id.button9);
+        btn.setEnabled(false);
+        btn = (Button) findViewById(R.id.button10);
+        btn.setEnabled(false);
     }
 
     @Override
@@ -309,8 +320,16 @@ public class DeviceControlActivity extends Activity {
     }
 
     public void startMeasurement(View view) {
+        Button btn = (Button) findViewById(R.id.button8);
+        btn.setEnabled(false);
+        btn = (Button) findViewById(R.id.button9);
+        btn.setEnabled(true);
+        btn = (Button) findViewById(R.id.button10);
+        btn.setEnabled(false);
         byte[] cmds = new byte[1];
         cmds[0] = 1;
+        mDataStorage = new DataStorage();
+        mBluetoothLeService.setDataStorage(mDataStorage);
         // settings
         // activate sensors
         mBluetoothLeService.writeCharacteristic(mBluetoothLeService.LSM330_SERVICE,mBluetoothLeService.LSM330_CHAR_ACC_EN,cmds);
@@ -324,6 +343,12 @@ public class DeviceControlActivity extends Activity {
     }
 
     public void stopMeasurement(View view) {
+        Button btn = (Button) findViewById(R.id.button8);
+        btn.setEnabled(true);
+        btn = (Button) findViewById(R.id.button9);
+        btn.setEnabled(false);
+        btn = (Button) findViewById(R.id.button10);
+        btn.setEnabled(true);
         byte[] cmds = new byte[1];
         cmds[0] = 1;
         // stop notification

@@ -52,6 +52,8 @@ public class BluetoothLeService extends Service {
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
 
+    private DataStorage mDataStorage;
+
     public final static String ACTION_GATT_CONNECTED =
             "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
     public final static String ACTION_GATT_DISCONNECTED =
@@ -142,6 +144,9 @@ public class BluetoothLeService extends Service {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            if (mDataStorage != null) {
+                Log.i("Log",characteristic.getValue().toString());
+            }
         }
     };
 
@@ -389,5 +394,10 @@ public class BluetoothLeService extends Service {
         BluetoothGattCharacteristic chara = service.getCharacteristic(charUuid);
         chara.setValue(data);
         mBluetoothGatt.writeCharacteristic(chara);
+    }
+
+    public void setDataStorage (DataStorage dataStorage)
+    {
+        mDataStorage = dataStorage;
     }
 }
