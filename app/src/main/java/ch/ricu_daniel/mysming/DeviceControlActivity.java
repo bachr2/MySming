@@ -307,7 +307,35 @@ public class DeviceControlActivity extends Activity {
         return intentFilter;
     }
 
+    public void startMeasurement(View view) {
+        byte[] cmds = new byte[1];
+        cmds[0] = 1;
+        // settings
+        // activate sensors
+        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.LSM330_SERVICE,mBluetoothLeService.LSM330_CHAR_ACC_EN,cmds);
+        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.LSM330_SERVICE,mBluetoothLeService.LSM330_CHAR_GYRO_EN,cmds);
+        // setup sensors
+        // start measurement
+        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.MEASURE_SERVICE,mBluetoothLeService.MEASURE_CHAR_START,cmds);
+        // setup notification
+        mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.MEASURE_SERVICE,mBluetoothLeService.MEASURE_CHAR_DATASTREAM, true);
+
+    }
+
+    public void stopMeasurement(View view) {
+        byte[] cmds = new byte[1];
+        cmds[0] = 1;
+        // stop notification
+        mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.MEASURE_SERVICE,mBluetoothLeService.MEASURE_CHAR_DATASTREAM, false);
+        // stop measurement
+        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.MEASURE_SERVICE,mBluetoothLeService.MEASURE_CHAR_STOP,cmds);
+        // stop sensors
+        cmds[0] = 0;
+        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.LSM330_SERVICE,mBluetoothLeService.LSM330_CHAR_ACC_EN,cmds);
+        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.LSM330_SERVICE,mBluetoothLeService.LSM330_CHAR_GYRO_EN,cmds);
+    }
+
     public void showGraph(View view) {
-        //Here goes your Code Ricu :-)
+        // show data from measurement
     }
 }

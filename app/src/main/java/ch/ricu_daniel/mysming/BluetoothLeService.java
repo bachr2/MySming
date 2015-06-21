@@ -65,6 +65,37 @@ public class BluetoothLeService extends Service {
 
     public final static UUID UUID_HEART_RATE_MEASUREMENT =
             UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
+    public final static UUID LSM330_SERVICE           =
+            UUID.fromString(SampleGattAttributes.LSM330_SERVICE);
+    public final static UUID LSM330_CHAR_ACC_EN       =
+            UUID.fromString(SampleGattAttributes.LSM330_CHAR_ACC_EN);
+    public final static UUID LSM330_CHAR_GYRO_EN      =
+            UUID.fromString(SampleGattAttributes.LSM330_CHAR_GYRO_EN);
+    public final static UUID LSM330_CHAR_TEMP_SAMPLE  =
+            UUID.fromString(SampleGattAttributes.LSM330_CHAR_TEMP_SAMPLE);
+    public final static UUID LSM330_CHAR_ACC_FSCALE   =
+            UUID.fromString(SampleGattAttributes.LSM330_CHAR_ACC_FSCALE);
+    public final static UUID LSM330_CHAR_GYRO_FSCALE  =
+            UUID.fromString(SampleGattAttributes.LSM330_CHAR_GYRO_FSCALE);
+    public final static UUID LSM330_CHAR_ACC_ODR      =
+            UUID.fromString(SampleGattAttributes.LSM330_CHAR_ACC_ODR);
+    public final static UUID LSM330_CHAR_GYRO_ODR     =
+            UUID.fromString(SampleGattAttributes.LSM330_CHAR_GYRO_ODR);
+    public final static UUID LSM330_CHAR_TRIGGER_VAL  =
+            UUID.fromString(SampleGattAttributes.LSM330_CHAR_TRIGGER_VAL);
+    public final static UUID LSM330_CHAR_TRIGGER_AXIS =
+            UUID.fromString(SampleGattAttributes.LSM330_CHAR_TRIGGER_AXIS);
+
+    public final static UUID MEASURE_SERVICE         =
+            UUID.fromString(SampleGattAttributes.MEASURE_SERVICE);
+    public final static UUID MEASURE_CHAR_START      =
+            UUID.fromString(SampleGattAttributes.MEASURE_CHAR_START);
+    public final static UUID MEASURE_CHAR_STOP       =
+            UUID.fromString(SampleGattAttributes.MEASURE_CHAR_STOP);
+    public final static UUID MEASURE_CHAR_DURATION   =
+            UUID.fromString(SampleGattAttributes.MEASURE_CHAR_DURATION);
+    public final static UUID MEASURE_CHAR_DATASTREAM =
+            UUID.fromString(SampleGattAttributes.MEASURE_CHAR_DATASTREAM);
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -304,6 +335,37 @@ public class BluetoothLeService extends Service {
             mBluetoothGatt.writeDescriptor(descriptor);
         }
     }
+    public void setCharacteristicNotification(UUID serviceUuid, UUID charUuid, boolean enabled) {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        BluetoothGattCharacteristic chara = mBluetoothGatt
+                .getService(serviceUuid)
+                .getCharacteristic(charUuid);
+
+        // Enable notification internally.
+        if (!mBluetoothGatt.setCharacteristicNotification(chara, enabled)) {
+            Log.w(TAG, "setCharacteristicNotification failed");
+            return;
+        }
+
+        // Enable notification remotely.
+        BluetoothGattDescriptor clientConfig = chara.getDescriptor(UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
+        if (clientConfig == null) {
+            return;
+        }
+
+        if (enabled) {
+            clientConfig.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+        } else {
+            clientConfig.setValue(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
+        }
+
+        mBluetoothGatt.writeDescriptor(clientConfig);
+
+        return;
+    }
 
     /**
      * Retrieves a list of supported GATT services on the connected device. This should be
@@ -315,5 +377,17 @@ public class BluetoothLeService extends Service {
         if (mBluetoothGatt == null) return null;
 
         return mBluetoothGatt.getServices();
+    }
+
+    public void writeCharacteristic(UUID serviceUuid, UUID charUuid, byte[] data)
+    {
+        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
+            Log.w(TAG, "BluetoothAdapter not initialized");
+            return;
+        }
+        BluetoothGattService service = mBluetoothGatt.getService(serviceUuid);
+        BluetoothGattCharacteristic chara = service.getCharacteristic(charUuid);
+        chara.setValue(data);
+        mBluetoothGatt.writeCharacteristic(chara);
     }
 }

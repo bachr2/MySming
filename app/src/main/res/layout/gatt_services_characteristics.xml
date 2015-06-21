@@ -76,8 +76,24 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:text="Starte Messung"
+        android:onClick="startMeasurement"
+        android:id="@+id/button8"
+        android:layout_gravity="center_horizontal" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stope Messung"
+        android:onClick="stopMeasurement"
+        android:id="@+id/button9"
+        android:layout_gravity="center_horizontal" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="Graph aktualisieren"
         android:onClick="showGraph"
-        android:id="@+id/button8"
+        android:id="@+id/button10"
         android:layout_gravity="center_horizontal" />
 </LinearLayout>
