@@ -110,6 +110,7 @@ public class DeviceControlActivity extends Activity {
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
             }
+            Log.i("Log","Received: "+action);
         }
     };
 
