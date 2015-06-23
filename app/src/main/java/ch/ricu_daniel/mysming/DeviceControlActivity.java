@@ -52,6 +52,8 @@ public class DeviceControlActivity extends Activity {
     private DataStorage mDataStorage;
     private int mDataCurrentPosition = 0;
 
+    private boolean stopped = true;
+
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
@@ -113,8 +115,15 @@ public class DeviceControlActivity extends Activity {
                 displayGattServices(mBluetoothLeService.getSupportedGattServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
                 displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                if(!stopped) {
+                    mBluetoothLeService.refreshTemp();
+                }
+            } else if(BluetoothLeService.ACTION_DATA_WRITTEN.equals(action)) {
+                displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                mBluetoothLeService.advance();
             }
-            Log.i("Log","Received: "+action);
+            Log.i(TAG,"Received: "+action);
+            Log.i(TAG,"Content: "+context);
         }
     };
 
@@ -316,49 +325,30 @@ public class DeviceControlActivity extends Activity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
+        intentFilter.addAction(BluetoothLeService.ACTION_DATA_WRITTEN);
         return intentFilter;
     }
 
     public void startMeasurement(View view) {
+        stopped = false;
         Button btn = (Button) findViewById(R.id.button8);
         btn.setEnabled(false);
         btn = (Button) findViewById(R.id.button9);
         btn.setEnabled(true);
         btn = (Button) findViewById(R.id.button10);
         btn.setEnabled(false);
-        byte[] cmds = new byte[1];
-        cmds[0] = 1;
-        mDataStorage = new DataStorage();
-        mBluetoothLeService.setDataStorage(mDataStorage);
-        // settings
-        // activate sensors
-        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.LSM330_SERVICE,mBluetoothLeService.LSM330_CHAR_ACC_EN,cmds);
-        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.LSM330_SERVICE,mBluetoothLeService.LSM330_CHAR_GYRO_EN,cmds);
-        // setup sensors
-        // start measurement
-        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.MEASURE_SERVICE,mBluetoothLeService.MEASURE_CHAR_START,cmds);
-        // setup notification
-        mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.MEASURE_SERVICE,mBluetoothLeService.MEASURE_CHAR_DATASTREAM, true);
-
+        mBluetoothLeService.startMeasurement();
     }
 
     public void stopMeasurement(View view) {
+        stopped = true;
         Button btn = (Button) findViewById(R.id.button8);
         btn.setEnabled(true);
         btn = (Button) findViewById(R.id.button9);
         btn.setEnabled(false);
         btn = (Button) findViewById(R.id.button10);
         btn.setEnabled(true);
-        byte[] cmds = new byte[1];
-        cmds[0] = 1;
-        // stop notification
-        mBluetoothLeService.setCharacteristicNotification(mBluetoothLeService.MEASURE_SERVICE,mBluetoothLeService.MEASURE_CHAR_DATASTREAM, false);
-        // stop measurement
-        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.MEASURE_SERVICE,mBluetoothLeService.MEASURE_CHAR_STOP,cmds);
-        // stop sensors
-        cmds[0] = 0;
-        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.LSM330_SERVICE,mBluetoothLeService.LSM330_CHAR_ACC_EN,cmds);
-        mBluetoothLeService.writeCharacteristic(mBluetoothLeService.LSM330_SERVICE,mBluetoothLeService.LSM330_CHAR_GYRO_EN,cmds);
+        mBluetoothLeService.stopMeasurement();
     }
 
     public void showGraph(View view) {

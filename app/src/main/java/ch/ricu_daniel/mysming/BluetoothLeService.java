@@ -29,7 +29,9 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.util.Log;
 
 import java.util.List;
@@ -42,6 +44,8 @@ import java.util.UUID;
 public class BluetoothLeService extends Service {
     private final static String TAG = BluetoothLeService.class.getSimpleName();
 
+    private Handler mHandler = null;
+
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
     private String mBluetoothDeviceAddress;
@@ -51,6 +55,8 @@ public class BluetoothLeService extends Service {
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
+    private static final int STATE_INITMEASURE = 3;
+    private static final int STATE_MEASURING = 4;
 
     private DataStorage mDataStorage;
 
@@ -62,6 +68,8 @@ public class BluetoothLeService extends Service {
             "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
     public final static String ACTION_DATA_AVAILABLE =
             "com.example.bluetooth.le.ACTION_DATA_AVAILABLE";
+    public final static String ACTION_DATA_WRITTEN =
+            "com.example.bluetooth.le.ACTION_DATA_WRITTEN";
     public final static String EXTRA_DATA =
             "com.example.bluetooth.le.EXTRA_DATA";
 
@@ -141,6 +149,15 @@ public class BluetoothLeService extends Service {
         }
 
         @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt,
+                                         BluetoothGattCharacteristic characteristic,
+                                         int status) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                broadcastUpdate(ACTION_DATA_WRITTEN, characteristic);
+            }
+        }
+
+        @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
@@ -175,6 +192,12 @@ public class BluetoothLeService extends Service {
             final int heartRate = characteristic.getIntValue(format, 1);
             Log.d(TAG, String.format("Received heart rate: %d", heartRate));
             intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
+        } else if(LSM330_CHAR_TEMP_SAMPLE.equals(characteristic.getUuid())) {
+            // For all other profiles, writes the data formatted in HEX.
+            final byte[] data = characteristic.getValue();
+            if (data != null && data.length > 0) {
+                intent.putExtra(EXTRA_DATA,String.format("%d \u2103", data[0]));
+            }
         } else {
             // For all other profiles, writes the data formatted in HEX.
             final byte[] data = characteristic.getValue();
@@ -182,7 +205,7 @@ public class BluetoothLeService extends Service {
                 final StringBuilder stringBuilder = new StringBuilder(data.length);
                 for(byte byteChar : data)
                     stringBuilder.append(String.format("%02X ", byteChar));
-                intent.putExtra(EXTRA_DATA, new String(data) + "\n" + stringBuilder.toString());
+                intent.putExtra(EXTRA_DATA, new String(data) + stringBuilder.toString());
             }
         }
         sendBroadcast(intent);
@@ -384,20 +407,153 @@ public class BluetoothLeService extends Service {
         return mBluetoothGatt.getServices();
     }
 
-    public void writeCharacteristic(UUID serviceUuid, UUID charUuid, byte[] data)
+    public void writeCharacteristic(BluetoothGattCharacteristic characteristic)
     {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
             return;
         }
-        BluetoothGattService service = mBluetoothGatt.getService(serviceUuid);
-        BluetoothGattCharacteristic chara = service.getCharacteristic(charUuid);
-        chara.setValue(data);
-        mBluetoothGatt.writeCharacteristic(chara);
+        mBluetoothGatt.writeCharacteristic(characteristic);
     }
 
     public void setDataStorage (DataStorage dataStorage)
     {
         mDataStorage = dataStorage;
+    }
+
+    public void startMeasurement()
+    {
+        mHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                BluetoothGattCharacteristic characteristic;
+                switch (msg.what) {
+                    case 0:
+                        mConnectionState = STATE_MEASURING;
+                        refreshTemp();
+                        break;
+                    case 1:
+                        mConnectionState = STATE_INITMEASURE;
+                        beginMeasurement();
+                        break;
+                    case 2:
+                        mConnectionState = STATE_CONNECTED;
+                        endMeasurement();
+                        break;
+                }
+            }
+        };
+        Message mymsg = new Message();
+        mymsg.obj = null;
+        mymsg.what = 1;
+        mHandler.sendMessageDelayed(mymsg, 100);
+    }
+
+    public void stopMeasurement()
+    {
+        Message mymsg = new Message();
+        mymsg.obj = null;
+        mymsg.what = 2;
+        mHandler.sendMessageDelayed(mymsg, 100);
+    }
+
+    private int mState = 0;
+
+    public void reset(){mState = 0;};
+    public void advance(){
+        mState++;
+        if(mConnectionState==STATE_INITMEASURE)
+        {
+            Message mymsg = new Message();
+            mymsg.obj = null;
+            mymsg.what = 1;
+            mHandler.sendMessageDelayed(mymsg, 500);
+        }
+        else if(mConnectionState==STATE_MEASURING)
+        {
+            Message mymsg = new Message();
+            mymsg.obj = null;
+            mymsg.what = 0;
+            mHandler.sendMessageDelayed(mymsg, 500);
+        }
+        else if(mConnectionState==STATE_CONNECTED)
+        {
+            Message mymsg = new Message();
+            mymsg.obj = null;
+            mymsg.what = 0;
+            mHandler.sendMessageDelayed(mymsg, 500);
+        }
+    };
+
+    public void refreshTemp() {
+        BluetoothGattCharacteristic characteristic = null;
+        switch(mState) {
+            case 0:
+                characteristic = mBluetoothGatt.getService(LSM330_SERVICE)
+                        .getCharacteristic(LSM330_CHAR_TEMP_SAMPLE);
+                readCharacteristic(characteristic);
+                break;
+        }
+    }
+
+    public void beginMeasurement()
+    {
+        BluetoothGattCharacteristic characteristic = null;
+        switch(mState) {
+            case 0:
+                characteristic = mBluetoothGatt.getService(LSM330_SERVICE)
+                        .getCharacteristic(LSM330_CHAR_ACC_EN);
+                characteristic.setValue(new byte[]{0x01});
+                writeCharacteristic(characteristic);
+                break;
+            case 1:
+                characteristic = mBluetoothGatt.getService(LSM330_SERVICE)
+                        .getCharacteristic(LSM330_CHAR_GYRO_EN);
+                characteristic.setValue(new byte[]{0x01});
+                writeCharacteristic(characteristic);
+                break;
+            case 2:
+                characteristic = mBluetoothGatt.getService(MEASURE_SERVICE)
+                        .getCharacteristic(MEASURE_CHAR_START);
+                characteristic.setValue(new byte[]{0x01});
+                writeCharacteristic(characteristic);
+                break;
+            case 3:
+                mState=0;
+                Message mymsg = new Message();
+                mymsg.obj = null;
+                mymsg.what = 0;
+                mHandler.sendMessageDelayed(mymsg, 500);
+                break;
+        }
+    }
+
+    public void endMeasurement()
+    {
+        BluetoothGattCharacteristic characteristic = null;
+        switch(mState) {
+            case 2:
+                characteristic = mBluetoothGatt.getService(LSM330_SERVICE)
+                        .getCharacteristic(LSM330_CHAR_ACC_EN);
+                characteristic.setValue(new byte[]{0x00});
+                writeCharacteristic(characteristic);
+                break;
+            case 1:
+                characteristic = mBluetoothGatt.getService(LSM330_SERVICE)
+                        .getCharacteristic(LSM330_CHAR_GYRO_EN);
+                characteristic.setValue(new byte[]{0x00});
+                writeCharacteristic(characteristic);
+                break;
+            case 0:
+                characteristic = mBluetoothGatt.getService(MEASURE_SERVICE)
+                        .getCharacteristic(MEASURE_CHAR_STOP);
+                characteristic.setValue(new byte[]{0x01});
+                writeCharacteristic(characteristic);
+                break;
+            case 3:
+                mState=0;
+                mHandler = null;
+                break;
+        }
     }
 }
