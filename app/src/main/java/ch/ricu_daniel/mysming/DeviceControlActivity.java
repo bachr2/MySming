@@ -75,7 +75,7 @@ public class DeviceControlActivity extends Activity {
     private BluetoothLeService mBluetoothLeService;
     private ArrayList<ArrayList<BluetoothGattCharacteristic>> mGattCharacteristics =
             new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
-    private boolean mConnected = false;
+    private int mConnected = 0;
     private BluetoothGattCharacteristic mNotifyCharacteristic;
 
     private final String LIST_NAME = "NAME";
@@ -112,12 +112,22 @@ public class DeviceControlActivity extends Activity {
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
-                mConnected = true;
+                mConnected = 1;
                 updateConnectionState(R.string.connected);
                 invalidateOptionsMenu();
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
-                mConnected = false;
+                mConnected = 0;
                 updateConnectionState(R.string.disconnected);
+                invalidateOptionsMenu();
+                clearUI();
+            } else if (BluetoothLeService.ACTION_MEASURE_INITMEASURE.equals(action)) {
+                mConnected = 2;
+                updateConnectionState(R.string.init);
+                invalidateOptionsMenu();
+                clearUI();
+            } else if (BluetoothLeService.ACTION_MEASURE_MEASURING.equals(action)) {
+                mConnected = 3;
+                updateConnectionState(R.string.measuring);
                 invalidateOptionsMenu();
                 clearUI();
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
@@ -240,7 +250,7 @@ public class DeviceControlActivity extends Activity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.gatt_services, menu);
-        if (mConnected) {
+        if (mConnected>0) {
             menu.findItem(R.id.menu_connect).setVisible(false);
             menu.findItem(R.id.menu_disconnect).setVisible(true);
         } else {
@@ -343,6 +353,8 @@ public class DeviceControlActivity extends Activity {
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_DISCONNECTED);
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED);
+        intentFilter.addAction(BluetoothLeService.ACTION_MEASURE_MEASURING);
+        intentFilter.addAction(BluetoothLeService.ACTION_MEASURE_INITMEASURE);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE);
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_WRITTEN);
         return intentFilter;

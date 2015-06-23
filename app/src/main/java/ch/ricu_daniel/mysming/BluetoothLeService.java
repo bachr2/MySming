@@ -62,6 +62,10 @@ public class BluetoothLeService extends Service {
             "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
     public final static String ACTION_GATT_DISCONNECTED =
             "com.example.bluetooth.le.ACTION_GATT_DISCONNECTED";
+    public final static String ACTION_MEASURE_MEASURING =
+            "com.example.bluetooth.le.ACTION_MEASURE_MEASURING";
+    public final static String ACTION_MEASURE_INITMEASURE =
+            "com.example.bluetooth.le.ACTION_MEASURE_INITMEASURE";
     public final static String ACTION_GATT_SERVICES_DISCOVERED =
             "com.example.bluetooth.le.ACTION_GATT_SERVICES_DISCOVERED";
     public final static String ACTION_DATA_AVAILABLE =
@@ -470,7 +474,7 @@ public class BluetoothLeService extends Service {
         {
             Message mymsg = new Message();
             mymsg.obj = null;
-            mymsg.what = 0;
+            mymsg.what = 2;
             mHandler.sendMessageDelayed(mymsg, 500);
         }
     };
@@ -479,6 +483,11 @@ public class BluetoothLeService extends Service {
         BluetoothGattCharacteristic characteristic = null;
         switch(mState) {
             case 0:
+                String intentAction = ACTION_MEASURE_MEASURING;
+                broadcastUpdate(intentAction);
+                advance();
+                break;
+            case 1:
                 characteristic = mBluetoothGatt.getService(LSM330_SERVICE)
                         .getCharacteristic(LSM330_CHAR_TEMP_SAMPLE);
                 readCharacteristic(characteristic);
@@ -491,24 +500,29 @@ public class BluetoothLeService extends Service {
         BluetoothGattCharacteristic characteristic = null;
         switch(mState) {
             case 0:
+                String intentAction = ACTION_MEASURE_INITMEASURE;
+                broadcastUpdate(intentAction);
+                advance();
+                break;
+            case 1:
                 characteristic = mBluetoothGatt.getService(LSM330_SERVICE)
                         .getCharacteristic(LSM330_CHAR_ACC_EN);
                 characteristic.setValue(new byte[]{0x01});
                 writeCharacteristic(characteristic);
                 break;
-            case 1:
+            case 2:
                 characteristic = mBluetoothGatt.getService(LSM330_SERVICE)
                         .getCharacteristic(LSM330_CHAR_GYRO_EN);
                 characteristic.setValue(new byte[]{0x01});
                 writeCharacteristic(characteristic);
                 break;
-            case 2:
+            case 3:
                 characteristic = mBluetoothGatt.getService(MEASURE_SERVICE)
                         .getCharacteristic(MEASURE_CHAR_START);
                 characteristic.setValue(new byte[]{0x01});
                 writeCharacteristic(characteristic);
                 break;
-            case 3:
+            case 4:
                 mState=0;
                 Message mymsg = new Message();
                 mymsg.obj = null;
@@ -541,6 +555,8 @@ public class BluetoothLeService extends Service {
                 writeCharacteristic(characteristic);
                 break;
             case 3:
+                String intentAction = ACTION_GATT_CONNECTED;
+                broadcastUpdate(intentAction);
                 mState=0;
                 mHandler = null;
                 break;
