@@ -36,6 +36,10 @@ import android.widget.ExpandableListView;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
 
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,10 +53,14 @@ import java.util.List;
 public class DeviceControlActivity extends Activity {
     private final static String TAG = DeviceControlActivity.class.getSimpleName();
 
-    private DataStorage mDataStorage;
     private int mDataCurrentPosition = 0;
 
+    private ArrayList<DataPoint> seriesarray;
+    private LineGraphSeries<DataPoint> series;
+    private GraphView graph;
+
     private boolean stopped = true;
+    private int timepassed = 0;
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
@@ -114,9 +122,13 @@ public class DeviceControlActivity extends Activity {
                 // Show all the supported services and characteristics on the user interface.
                 displayGattServices(mBluetoothLeService.getSupportedGattServices());
             } else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-                displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                String value = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
+                displayData(value+" \u2103");
                 if(!stopped) {
+                    seriesarray.add(new DataPoint(timepassed++, Double.valueOf(value)));
                     mBluetoothLeService.refreshTemp();
+                    // show data from measurement
+                    series.resetData(seriesarray.toArray(new DataPoint[0]));
                 }
             } else if(BluetoothLeService.ACTION_DATA_WRITTEN.equals(action)) {
                 displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
@@ -171,6 +183,8 @@ public class DeviceControlActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.gatt_services_characteristics);
 
+        series = new LineGraphSeries<DataPoint>(new DataPoint[] { });
+
         final Intent intent = getIntent();
         mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
         mDeviceAddress = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
@@ -190,8 +204,6 @@ public class DeviceControlActivity extends Activity {
         Button btn = (Button) findViewById(R.id.button8);
         btn.setEnabled(true);
         btn = (Button) findViewById(R.id.button9);
-        btn.setEnabled(false);
-        btn = (Button) findViewById(R.id.button10);
         btn.setEnabled(false);
     }
 
@@ -330,13 +342,17 @@ public class DeviceControlActivity extends Activity {
     }
 
     public void startMeasurement(View view) {
+        graph = (GraphView) findViewById(R.id.graph1);
+        graph.setTitle("Temparatur");
+        graph.removeAllSeries();
+        graph.addSeries(series);
         stopped = false;
+        timepassed = 0;
+        seriesarray = new ArrayList<>();
         Button btn = (Button) findViewById(R.id.button8);
         btn.setEnabled(false);
         btn = (Button) findViewById(R.id.button9);
         btn.setEnabled(true);
-        btn = (Button) findViewById(R.id.button10);
-        btn.setEnabled(false);
         mBluetoothLeService.startMeasurement();
     }
 
@@ -346,12 +362,6 @@ public class DeviceControlActivity extends Activity {
         btn.setEnabled(true);
         btn = (Button) findViewById(R.id.button9);
         btn.setEnabled(false);
-        btn = (Button) findViewById(R.id.button10);
-        btn.setEnabled(true);
         mBluetoothLeService.stopMeasurement();
-    }
-
-    public void showGraph(View view) {
-        // show data from measurement
     }
 }

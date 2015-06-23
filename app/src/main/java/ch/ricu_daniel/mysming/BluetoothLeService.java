@@ -58,8 +58,6 @@ public class BluetoothLeService extends Service {
     private static final int STATE_INITMEASURE = 3;
     private static final int STATE_MEASURING = 4;
 
-    private DataStorage mDataStorage;
-
     public final static String ACTION_GATT_CONNECTED =
             "com.example.bluetooth.le.ACTION_GATT_CONNECTED";
     public final static String ACTION_GATT_DISCONNECTED =
@@ -161,9 +159,6 @@ public class BluetoothLeService extends Service {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
-            if (mDataStorage != null) {
-                Log.i("Log",characteristic.getValue().toString());
-            }
         }
     };
 
@@ -196,7 +191,7 @@ public class BluetoothLeService extends Service {
             // For all other profiles, writes the data formatted in HEX.
             final byte[] data = characteristic.getValue();
             if (data != null && data.length > 0) {
-                intent.putExtra(EXTRA_DATA,String.format("%d \u2103", data[0]));
+                intent.putExtra(EXTRA_DATA,String.format("%d", data[0]));
             }
         } else {
             // For all other profiles, writes the data formatted in HEX.
@@ -414,11 +409,6 @@ public class BluetoothLeService extends Service {
             return;
         }
         mBluetoothGatt.writeCharacteristic(characteristic);
-    }
-
-    public void setDataStorage (DataStorage dataStorage)
-    {
-        mDataStorage = dataStorage;
     }
 
     public void startMeasurement()
