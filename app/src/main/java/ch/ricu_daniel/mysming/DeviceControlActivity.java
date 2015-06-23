@@ -60,7 +60,9 @@ public class DeviceControlActivity extends Activity {
     private GraphView graph;
 
     private boolean stopped = true;
-    private int timepassed = 0;
+    private boolean first = true;
+    private long timestamp = 0;
+    private long actual_timestamp = 0;
 
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
@@ -125,7 +127,12 @@ public class DeviceControlActivity extends Activity {
                 String value = intent.getStringExtra(BluetoothLeService.EXTRA_DATA);
                 displayData(value+" \u2103");
                 if(!stopped) {
-                    seriesarray.add(new DataPoint(timepassed++, Double.valueOf(value)));
+                    actual_timestamp = System.currentTimeMillis();
+                    if(first) {
+                        timestamp = actual_timestamp;
+                        first = false;
+                    }
+                    seriesarray.add(new DataPoint((actual_timestamp-timestamp)/1000.0, Double.valueOf(value)));
                     mBluetoothLeService.refreshTemp();
                     // show data from measurement
                     series.resetData(seriesarray.toArray(new DataPoint[0]));
@@ -347,7 +354,7 @@ public class DeviceControlActivity extends Activity {
         graph.removeAllSeries();
         graph.addSeries(series);
         stopped = false;
-        timepassed = 0;
+        first = true;
         seriesarray = new ArrayList<>();
         Button btn = (Button) findViewById(R.id.button8);
         btn.setEnabled(false);
